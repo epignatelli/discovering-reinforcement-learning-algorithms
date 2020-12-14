@@ -5,4 +5,4 @@ gym[atari]
 bsuite
 black
 pylint
-
+pycolab
