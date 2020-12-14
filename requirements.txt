@@ -1,0 +1,8 @@
+jaxlib
+jax
+gym
+gym[atari]
+bsuite
+black
+pylint
+
