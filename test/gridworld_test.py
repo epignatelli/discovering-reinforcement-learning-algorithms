@@ -1,18 +1,20 @@
-from lpg import base
-from lpg.environments import TabularGridworld, RandomGridworld, DENSE
+from lpg.environments.gridworld import TabularGridworld, RandomGridworld, GridMaps
 
 
 def test_tabular_gridworld():
-    env = TabularGridworld(DENSE, False)
+    env = TabularGridworld(GridMaps.DENSE, False)
+    env.render()
     print(env.reset())
     print(env.step(1))
+    env.render()
 
 
 def test_random_gridworld():
-    env = RandomGridworld(DENSE, False)
+    env = RandomGridworld(GridMaps.SMALL_SPARSE, False)
+    env.render()
     print(env.reset())
     print(env.step(1))
+    env.render()
 
 
-# test_tabular_gridworld()
-# test_random_gridworld
+test_random_gridworld()
