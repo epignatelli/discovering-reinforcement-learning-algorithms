@@ -7,7 +7,6 @@ import dm_env
 import numpy as onp
 from dm_env import specs
 
-from ..base import Gridworld, GridworldConfig, GridworldObject
 
 Point = Tuple[int, int]
 
@@ -131,8 +130,8 @@ class Gridworld(dm_env.Environment):
         # move
         vector = Actions(action).vector()
         location = (
-            min(0, max(agent[0] + vector[0], self.shape[0])),
-            min(0, max(agent[1] + vector[1], self.shape[1])),
+            max(0, min(agent[0] + vector[0], self.shape[0])),
+            max(0, min(agent[1] + vector[1], self.shape[1])),
         )
         # hit a wall
         if self.art[location] == "#":

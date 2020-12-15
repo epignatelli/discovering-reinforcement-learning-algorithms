@@ -15,6 +15,3 @@ def test_random_gridworld():
     print(env.reset())
     print(env.step(1))
     env.render()
-
-
-test_random_gridworld()
