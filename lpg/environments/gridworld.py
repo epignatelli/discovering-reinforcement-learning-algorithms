@@ -3,6 +3,7 @@ import random
 from abc import abstractmethod
 from typing import Any, List, NamedTuple, Tuple
 
+from bsuite.environments import base
 import dm_env
 import numpy as onp
 from dm_env import specs
@@ -51,7 +52,7 @@ class Actions(enum.IntEnum):
         )[int(self)]
 
 
-class Gridworld(dm_env.Environment):
+class Gridworld(base.Environment):
     def __init__(
         self,
         game_config: GridworldConfig,
@@ -65,14 +66,31 @@ class Gridworld(dm_env.Environment):
         self.shape = (len(game_config.art), len(game_config.art[0]))
 
         # private:
+        self._rng = onp.random.RandomState(seed)
         self._iteration = 0
         self._object_locations = {}
-        onp.random.seed(seed)
-        random.seed(seed)
 
     @abstractmethod
-    def observation(self) -> Any:
+    def _get_observation(self) -> Any:
         raise NotImplementedError
+
+    def _reset(self) -> dm_env.TimeStep:
+        # spawn agent at random location
+        self.spawn("P")
+        # spawn objects at random location
+        for object in self.objects:
+            self.spawn(object.symbol, object.n)
+        return dm_env.restart(self._get_observation())
+
+    def _step(self, action: int) -> dm_env.TimeStep:
+        # update agent
+        reward = self.act(action)
+        # env is stochastic, let it be ❤
+        step_type = self.forward()
+        # and return the current observation
+        return dm_env.TimeStep(
+            step_type, reward, self.discount, self._get_observation()
+        )
 
     @abstractmethod
     def observation_spec(self) -> specs.Array:
@@ -81,28 +99,10 @@ class Gridworld(dm_env.Environment):
     def action_spec(self) -> specs.DiscreteArray:
         return specs.DiscreteArray(9, name="action")
 
-    def reset(self) -> dm_env.TimeStep:
-        # spawn agent at random location
-        self.spawn("P")
-        # spawn objects at random location
-        for object in self.objects:
-            self.spawn(object.symbol, object.n)
-        return dm_env.TimeStep(
-            dm_env.StepType.FIRST, None, self.discount, self.observation()
-        )
-
-    def step(self, action: int) -> dm_env.TimeStep:
-        # update agent
-        reward = self.act(action)
-        # env is stochastic, let it be ❤
-        step_type = self.forward()
-        # and return the current observation
-        return dm_env.TimeStep(step_type, reward, self.discount, self.observation())
-
     def random_point(self) -> Point:
         return (
-            onp.random.randint(0, self.shape[0]),
-            onp.random.randint(0, self.shape[1]),
+            self._rng.randint(0, self.shape[0]),
+            self._rng.randint(0, self.shape[1]),
         )
 
     def empty_point(self) -> Point:
@@ -148,10 +148,10 @@ class Gridworld(dm_env.Environment):
             missing = obj.n - len(self.locate(obj.symbol))
             for _ in range(missing):
                 #  termination probability
-                if onp.random.random() < obj.eps_term:
+                if self._rng.random() < obj.eps_term:
                     return dm_env.StepType.LAST
                 #  respawning probability
-                if onp.random.random() < obj.eps_respawn:
+                if self._rng.random() < obj.eps_respawn:
                     self.spawn(obj.symbol)
         return dm_env.StepType.MID
 
@@ -160,9 +160,11 @@ class Gridworld(dm_env.Environment):
         print(self.art)
 
     def seed(self, s: int):
-        onp.random.seed(s)
-        random.seed(s)
+        self._rng = onp.random.RandomState(s)
         return
+
+    def bsuite_info(self):
+        return {}
 
 
 class TabularGridworld(Gridworld):
@@ -170,7 +172,7 @@ class TabularGridworld(Gridworld):
         super().__init__(game_config, seed=seed)
         self._fix_object_locations()
 
-    def observation(self) -> Any:
+    def _get_observation(self) -> Any:
         i, j = self.locate("P")
         return i * self.shape[0] + j
 
@@ -194,7 +196,7 @@ class TabularGridworld(Gridworld):
 
 
 class RandomGridworld(Gridworld):
-    def observation(self) -> Any:
+    def _get_observation(self) -> Any:
         return onp.stack([onp.where(self.art == x.symbol, 1, 0) for x in self.objects])
 
     def observation_spec(self) -> specs.BoundedArray:
