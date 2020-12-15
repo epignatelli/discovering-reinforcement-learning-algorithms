@@ -59,6 +59,7 @@ class Gridworld(base.Environment):
         game_config: GridworldConfig,
         seed: int,
     ):
+        super().__init__()
         # public:
         self.art = onp.array([list(x) for x in game_config.art])
         self.objects = game_config.objects
@@ -71,14 +72,17 @@ class Gridworld(base.Environment):
         self._timestep = 0
         self._object_locations = {}
         self._plot = plt.imshow(onp.empty(self.shape))
+        self._reset()
 
     @abstractmethod
     def _get_observation(self) -> Any:
         raise NotImplementedError
 
     def _reset(self) -> dm_env.TimeStep:
+        self._timestep = 0
         # spawn agent at random location
-        self.spawn("P")
+        if "P" not in self.art:
+            self.spawn("P")
         # spawn objects at random location
         for object in self.objects:
             self.spawn(object.symbol, object.n)
