@@ -117,12 +117,8 @@ class Gridworld(dm_env.Environment):
             self.art[location] = symbol
         return
 
-    def locate(self, symbol) -> List[Point]:
+    def locate(self, symbol: chr) -> List[Point]:
         return onp.where(self.art == symbol)
-
-    def reward(self, position: Point) -> float:
-        obj = [x for x in self.objects if x.symbol == self.art[position]]
-        return obj[0].reward if len(obj) > 0 else 0.0
 
     def act(self, action: int) -> float:
         agent = self.locate("P")
@@ -133,13 +129,14 @@ class Gridworld(dm_env.Environment):
             max(0, min(agent[0] + vector[0], self.shape[0])),
             max(0, min(agent[1] + vector[1], self.shape[1])),
         )
-        # hit a wall
+        # hit a wall, go back (diagonal moves are never done partially)
         if self.art[location] == "#":
             location = agent
 
-        # stepped on object
+        # stepped on object, compute reward
         if self.art[location] in [obj.symbol for obj in self.objects]:
-            reward = self.reward(location)
+            obj = [x for x in self.objects if x.symbol == self.art[location]]
+            reward = obj[0].reward if len(obj) > 0 else 0.0
 
         # update agent position
         self.art[agent] = " "
@@ -158,7 +155,7 @@ class Gridworld(dm_env.Environment):
                     self.spawn(obj.symbol)
         return dm_env.StepType.MID
 
-    def render(self, mode="human") -> None:
+    def render(self, mode: str = "human") -> None:
         print()
         print(self.art)
 
@@ -187,7 +184,7 @@ class TabularGridworld(Gridworld):
                 self._object_locations[obj.symbol].append(self.empty_point())
         return
 
-    def spawn(self, symbol, n=1) -> None:
+    def spawn(self, symbol: chr, n: int = 1) -> None:
         if symbol in self._object_locations:
             for location in self._object_locations[symbol]:
                 self.art[location] = symbol
@@ -197,30 +194,11 @@ class TabularGridworld(Gridworld):
 
 
 class RandomGridworld(Gridworld):
-    def __init__(self, game_config: GridworldConfig, seed: int = 0):
-        super().__init__(game_config, seed=seed)
-        self._set_object_locations()
-
     def observation(self) -> Any:
         return onp.stack([onp.where(self.art == x.symbol, 1, 0) for x in self.objects])
 
     def observation_spec(self) -> specs.BoundedArray:
         return specs.BoundedArray((len(self.objects), *self.shape), name="observation")
-
-    def _set_object_locations(self) -> None:
-        self._object_locations = {obj.symbol: [] for obj in self.objects}
-        for obj in self.objects:
-            for _ in range(obj.n):
-                self._object_locations[obj.symbol].append(self.empty_point())
-        return
-
-    def spawn(self, symbol, n=1) -> None:
-        if symbol in self._object_locations:
-            for location in self._object_locations[symbol]:
-                self.art[location] = symbol
-        else:
-            self.art[self.empty_point()] = symbol
-        return
 
 
 DENSE = GridworldConfig(
