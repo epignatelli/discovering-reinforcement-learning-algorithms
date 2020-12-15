@@ -3,6 +3,7 @@ import random
 from abc import abstractmethod
 from typing import Any, List, NamedTuple, Tuple
 
+import matplotlib.pyplot as plt
 from bsuite.environments import base
 import dm_env
 import numpy as onp
@@ -67,8 +68,9 @@ class Gridworld(base.Environment):
 
         # private:
         self._rng = onp.random.RandomState(seed)
-        self._iteration = 0
+        self._timestep = 0
         self._object_locations = {}
+        self._plot = plt.imshow(onp.empty(self.shape))
 
     @abstractmethod
     def _get_observation(self) -> Any:
@@ -83,14 +85,38 @@ class Gridworld(base.Environment):
         return dm_env.restart(self._get_observation())
 
     def _step(self, action: int) -> dm_env.TimeStep:
-        # update agent
-        reward = self.act(action)
-        # env is stochastic, let it be ❤
-        step_type = self.forward()
-        # and return the current observation
-        return dm_env.TimeStep(
-            step_type, reward, self.discount, self._get_observation()
+        self._timestep += 1
+
+        ## update agent
+        agent = self.locate("P")
+        reward = 0.0
+        vector = Actions(action).vector()
+        location = (
+            max(0, min(agent[0] + vector[0], self.shape[0])),
+            max(0, min(agent[1] + vector[1], self.shape[1])),
         )
+        # hit a wall, go back (diagonal moves are never done partially)
+        if self.art[location] == "#":
+            location = agent
+        # stepped on object, compute reward
+        if self.art[location] in [obj.symbol for obj in self.objects]:
+            obj = [x for x in self.objects if x.symbol == self.art[location]]
+            reward = obj[0].reward if len(obj) > 0 else 0.0
+        # set new agent position
+        self.art[agent] = " "
+        self.art[location] = "P"
+
+        ## update environment, let it be ❤
+        for obj in self.objects:
+            missing = obj.n - len(self.locate(obj.symbol))
+            for _ in range(missing):
+                #  termination probability
+                if self._rng.random() < obj.eps_term:
+                    return dm_env.termination(reward, self._get_observation())
+                #  respawning probability
+                if self._rng.random() < obj.eps_respawn:
+                    self.spawn(obj.symbol)
+        return dm_env.transition(reward, self._get_observation())
 
     @abstractmethod
     def observation_spec(self) -> specs.Array:
@@ -120,47 +146,14 @@ class Gridworld(base.Environment):
     def locate(self, symbol: chr) -> List[Point]:
         return onp.where(self.art == symbol)
 
-    def act(self, action: int) -> float:
-        agent = self.locate("P")
-        reward = 0.0
-        # move
-        vector = Actions(action).vector()
-        location = (
-            max(0, min(agent[0] + vector[0], self.shape[0])),
-            max(0, min(agent[1] + vector[1], self.shape[1])),
-        )
-        # hit a wall, go back (diagonal moves are never done partially)
-        if self.art[location] == "#":
-            location = agent
-
-        # stepped on object, compute reward
-        if self.art[location] in [obj.symbol for obj in self.objects]:
-            obj = [x for x in self.objects if x.symbol == self.art[location]]
-            reward = obj[0].reward if len(obj) > 0 else 0.0
-
-        # update agent position
-        self.art[agent] = " "
-        self.art[location] = "P"
-        return reward
-
-    def forward(self) -> dm_env.StepType:
-        for obj in self.objects:
-            missing = obj.n - len(self.locate(obj.symbol))
-            for _ in range(missing):
-                #  termination probability
-                if self._rng.random() < obj.eps_term:
-                    return dm_env.StepType.LAST
-                #  respawning probability
-                if self._rng.random() < obj.eps_respawn:
-                    self.spawn(obj.symbol)
-        return dm_env.StepType.MID
-
-    def render(self, mode: str = "human") -> None:
-        print()
-        print(self.art)
-
-    def seed(self, s: int):
-        self._rng = onp.random.RandomState(s)
+    def render(self, mode: str = "ansi") -> None:
+        if mode == "human":
+            self._plot.set_data(self.art)
+            return plt.show()
+        elif mode == "rgb_array":
+            return self.art
+        elif mode == "ansi":
+            print(self.art)
         return
 
     def bsuite_info(self):
