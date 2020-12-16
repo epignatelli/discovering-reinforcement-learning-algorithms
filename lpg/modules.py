@@ -41,7 +41,7 @@ def Rnn(cell: Module, n_layers: int):
             lambda i, val: cell.apply(params, val[0], val[1]),
             (inputs, prev_state),
         )
-        return outputs
+        return outputs, state
 
     return (init, apply)
 
