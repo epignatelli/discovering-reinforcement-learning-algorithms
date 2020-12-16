@@ -1,3 +1,5 @@
+from typing import NamedTuple
+
 import dm_env
 from bsuite.baselines import base
 

@@ -22,4 +22,11 @@ class Module(NamedTuple):
     apply: Callable[[Params, jnp.ndarray], jnp.ndarray]
 
 
+class RnnCell(NamedTuple):
+    initial_state: Callable[[], jnp.ndarray]
+    init: Callable[[RNGKey, Shape], Tuple[Shape, Params]]
+    apply: Callable[[Params, jnp.ndarray], jnp.ndarray]
+
+
 module = functools.partial(factory, T=Module)
+rnn_cell = functools.partial(factory, T=RnnCell)
