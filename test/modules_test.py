@@ -15,16 +15,16 @@ def test_lstm_cell():
     print(outputs.shape, state.h.shape, state.c.shape)
 
 
-test_lstm_cell()
+# test_lstm_cell()
 
 
-# def test_lstm():
-#     rng = jax.random.PRNGKey(0)
-#     input_shape = (8,)
-#     lstm = LSTM(5, 16)
-#     x = jax.random.normal(rng, input_shape)
-#     out_shape, params = lstm.init(rng, input_shape)
-#     outputs = lstm.apply(params, x)
+def test_lstm():
+    rng = jax.random.PRNGKey(0)
+    input_shape = (8,)
+    lstm = LSTM(5, 16)
+    x = jax.random.normal(rng, input_shape)
+    out_shape, params = lstm.init(rng, input_shape)
+    outputs = lstm.apply(params, x)
 
 
-# test_lstm()
+test_lstm()

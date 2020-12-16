@@ -1,3 +1,4 @@
+import functools
 from typing import NamedTuple
 
 import jax
@@ -15,16 +16,22 @@ def Rnn(cell: RnnCell, n_layers: int):
     def init(rng, input_shape):
         return cell.init(rng, input_shape)
 
-    def apply(params, inputs, prev_state=None):
-        if prev_state is None:
-            prev_state = cell.initial_state(inputs.shape)
-        outputs, prev_state = cell.apply(params, inputs, prev_state)
-        outputs, prev_state = jax.lax.fori_loop(
-            0,
+    def apply(params, inputs, prev_state=None, unroll=False):
+        prev_state = prev_state or cell.initial_state(inputs.shape)
+        inputs, prev_state = cell.apply(params, inputs, prev_state)
+        loop_fun = lambda operand: jax.lax.fori_loop(
+            1,
             n_layers,
-            lambda i, val: cell.apply(params, val[0], val[1]),
-            (outputs, prev_state),
+            lambda i, v: cell.apply(params, v[0], v[1]),
+            (inputs, prev_state),
         )
+        scan_fun = lambda operand: jax.lax.scan(
+            lambda carry, x: reversed(cell.apply(params, x, carry)),
+            (inputs, prev_state),
+            None,
+            n_layers - 1,
+        )
+        outputs, prev_state = jax.lax.cond(unroll, scan_fun, loop_fun, None)
         return outputs, prev_state
 
     return (init, apply)
