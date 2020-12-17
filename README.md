@@ -17,3 +17,7 @@ conda env create -n lpg
 conda activate lpg
 pip install git+https://github.com/epignatelli/discovering-reinforcement-learning-algorithms
 ```
+
+
+## References
+[1] [_Oh, J., Hessel, M., Czarnecki, W.M., Xu, Z., van Hasselt, H.P., Singh, S. and Silver, D., 2020. Discovering reinforcement learning algorithms. Advances in Neural Information Processing Systems, 33._](https://proceedings.neurips.cc/paper/2020/file/0b96d81f0494fde5428c7aea243c9157-Paper.pdf)
