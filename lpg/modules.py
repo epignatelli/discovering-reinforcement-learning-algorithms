@@ -1,29 +1,24 @@
 from typing import NamedTuple
 
 import jax
-from jax._src.numpy.lax_numpy import __array_module__
 import jax.numpy as jnp
 from jax.experimental.stax import Dense
 from jax.nn import sigmoid
 from jax.nn.initializers import glorot_normal, normal, zeros
 
-from .base import module, RnnCell, rnn_cell
+from .base import RnnCell, module, rnn_cell
 
 
 @module
-def Rnn(cell: RnnCell, n_layers: int):
+def Rnn(cell: RnnCell):
     def init(rng, input_shape):
         return cell.init(rng, input_shape)
 
-    def apply(params, inputs, prev_state=None):
-        if prev_state is None:
-            prev_state = cell.initial_state(inputs.shape)
-        outputs, prev_state = cell.apply(params, inputs, prev_state)
-        outputs, prev_state = jax.lax.fori_loop(
-            0,
-            n_layers,
-            lambda i, val: cell.apply(params, val[0], val[1]),
-            (outputs, prev_state),
+    def apply(params, inputs, prev_state=cell.initial_state()):
+        prev_state, outputs = jax.lax.scan(
+            lambda prev_state, inputs: cell.apply(params, inputs, prev_state)[::-1],
+            prev_state,
+            inputs,
         )
         return outputs, prev_state
 
@@ -47,19 +42,19 @@ def LSTMCell(
     """Layer construction function for an LSTM cell.
     Formulation: Zaremba, W., 2014, https://arxiv.org/pdf/1409.2329.pdf"""
 
-    def initial_state(input_shape):
-        shape = input_shape[:-1] + (hidden_size,)
+    def initial_state():
+        shape = (hidden_size,)
         k1, k2 = jax.random.split(jax.random.PRNGKey(initial_state_seed))
         return LSTMState(h_initial_state_fn(k1, shape), c_initial_state_fn(k2, shape))
 
     def init(rng, input_shape):
-        input_shape = input_shape[:-1] + (input_shape[-1] + hidden_size,)
-        output_shape, params = Dense(4 * hidden_size, W_init, b_init)[0](
-            rng, input_shape
-        )
-        return output_shape, params
+        in_dim, out_dim = input_shape[-1] + hidden_size, 4 * hidden_size
+        k1, k2 = jax.random.split(rng)
+        W, b = W_init(k1, (in_dim, out_dim)), b_init(k2, (out_dim,))
+        output_shape = input_shape[:-1] + (hidden_size,)
+        return output_shape, (W, b)
 
-    def apply(params, inputs, prev_state):
+    def apply(params, inputs, prev_state=initial_state()):
         W, b = params
         xh = jnp.concatenate([inputs, prev_state.h], axis=-1)
         gated = jnp.matmul(xh, W) + b
@@ -73,7 +68,6 @@ def LSTMCell(
 
 @module
 def LSTM(
-    n_layers,
     hidden_size,
     W_init=glorot_normal(),
     b_init=normal(),
@@ -89,4 +83,4 @@ def LSTM(
         c_initial_state,
         initial_state_seed,
     )
-    return Rnn(cell, n_layers)
+    return Rnn(cell)
