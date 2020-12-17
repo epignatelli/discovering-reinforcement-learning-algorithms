@@ -48,10 +48,9 @@ def LSTMCell(
         return LSTMState(h_initial_state_fn(k1, shape), c_initial_state_fn(k2, shape))
 
     def init(rng, input_shape):
-        input_shape = (input_shape[:-1]) + (input_shape[-1] + hidden_size,)
-        out_dim = 4 * hidden_size
+        in_dim, out_dim = input_shape[-1] + hidden_size, 4 * hidden_size
         k1, k2 = jax.random.split(rng)
-        W, b = W_init(k1, (input_shape[-1], out_dim)), b_init(k2, (out_dim,))
+        W, b = W_init(k1, (in_dim, out_dim)), b_init(k2, (out_dim,))
         output_shape = input_shape[:-1] + (hidden_size,)
         return output_shape, (W, b)
 
