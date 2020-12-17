@@ -5,7 +5,6 @@ import jax.numpy as jnp
 RNGKey = jnp.ndarray
 Shape = Tuple[int, ...]
 Params = Any
-CellState = Any
 
 
 def factory(cls_maker, T):

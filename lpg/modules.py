@@ -2,15 +2,14 @@ from typing import NamedTuple
 
 import jax
 import jax.numpy as jnp
-from jax.experimental.stax import Dense
 from jax.nn import sigmoid
 from jax.nn.initializers import glorot_normal, normal, zeros
 
-from .base import RnnCell, module, rnn_cell
+from .base import module, rnn_cell
 
 
 @module
-def Rnn(cell: RnnCell):
+def Rnn(cell):
     def init(rng, input_shape):
         return cell.init(rng, input_shape)
 
