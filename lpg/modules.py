@@ -55,13 +55,6 @@ def LSTMCell(
         return output_shape, (W, b)
 
     def apply(params, inputs, prev_state=initial_state()):
-        """
-        On the first pass, inputs has shape = (input_shape,)
-        On the second pass, inputs has shape = (hidden_size,)
-        But prev_state.h has always shape = (hidden_size,)
-        And W has always shape (4 * hidden_size,)
-        How to combine this stuff?
-        """
         W, b = params
         xh = jnp.concatenate([inputs, prev_state.h], axis=-1)
         gated = jnp.matmul(xh, W) + b
