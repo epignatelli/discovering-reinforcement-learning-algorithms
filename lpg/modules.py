@@ -1,37 +1,25 @@
-import functools
 from typing import NamedTuple
 
 import jax
-from jax._src.numpy.lax_numpy import __array_module__
 import jax.numpy as jnp
 from jax.experimental.stax import Dense
 from jax.nn import sigmoid
 from jax.nn.initializers import glorot_normal, normal, zeros
 
-from .base import module, RnnCell, rnn_cell
+from .base import RnnCell, module, rnn_cell
 
 
 @module
-def Rnn(cell: RnnCell, n_layers: int):
+def Rnn(cell: RnnCell):
     def init(rng, input_shape):
         return cell.init(rng, input_shape)
 
-    def apply(params, inputs, prev_state=None, unroll=False):
-        prev_state = prev_state or cell.initial_state(inputs.shape)
-        inputs, prev_state = cell.apply(params, inputs, prev_state)
-        loop_fun = lambda operand: jax.lax.fori_loop(
-            1,
-            n_layers,
-            lambda i, v: cell.apply(params, v[0], v[1]),
-            (inputs, prev_state),
+    def apply(params, inputs, prev_state=cell.initial_state()):
+        prev_state, outputs = jax.lax.scan(
+            lambda prev_state, inputs: cell.apply(params, inputs, prev_state)[::-1],
+            prev_state,
+            inputs,
         )
-        scan_fun = lambda operand: jax.lax.scan(
-            lambda carry, x: reversed(cell.apply(params, x, carry)),
-            (inputs, prev_state),
-            None,
-            n_layers - 1,
-        )
-        outputs, prev_state = jax.lax.cond(unroll, scan_fun, loop_fun, None)
         return outputs, prev_state
 
     return (init, apply)
@@ -54,19 +42,27 @@ def LSTMCell(
     """Layer construction function for an LSTM cell.
     Formulation: Zaremba, W., 2014, https://arxiv.org/pdf/1409.2329.pdf"""
 
-    def initial_state(input_shape):
-        shape = input_shape[:-1] + (hidden_size,)
+    def initial_state():
+        shape = (hidden_size,)
         k1, k2 = jax.random.split(jax.random.PRNGKey(initial_state_seed))
         return LSTMState(h_initial_state_fn(k1, shape), c_initial_state_fn(k2, shape))
 
     def init(rng, input_shape):
-        input_shape = input_shape[:-1] + (input_shape[-1] + hidden_size,)
-        output_shape, params = Dense(4 * hidden_size, W_init, b_init)[0](
-            rng, input_shape
-        )
-        return output_shape, params
+        input_shape = (input_shape[:-1]) + (input_shape[-1] + hidden_size,)
+        out_dim = 4 * hidden_size
+        k1, k2 = jax.random.split(rng)
+        W, b = W_init(k1, (input_shape[-1], out_dim)), b_init(k2, (out_dim,))
+        output_shape = input_shape[:-1] + (hidden_size,)
+        return output_shape, (W, b)
 
-    def apply(params, inputs, prev_state):
+    def apply(params, inputs, prev_state=initial_state()):
+        """
+        On the first pass, inputs has shape = (input_shape,)
+        On the second pass, inputs has shape = (hidden_size,)
+        But prev_state.h has always shape = (hidden_size,)
+        And W has always shape (4 * hidden_size,)
+        How to combine this stuff?
+        """
         W, b = params
         xh = jnp.concatenate([inputs, prev_state.h], axis=-1)
         gated = jnp.matmul(xh, W) + b
@@ -80,7 +76,6 @@ def LSTMCell(
 
 @module
 def LSTM(
-    n_layers,
     hidden_size,
     W_init=glorot_normal(),
     b_init=normal(),
@@ -96,4 +91,4 @@ def LSTM(
         c_initial_state,
         initial_state_seed,
     )
-    return Rnn(cell, n_layers)
+    return Rnn(cell)
