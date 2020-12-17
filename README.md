@@ -2,7 +2,7 @@
 [![Project Status: WIP – Initial development is in progress, but there has not yet been a stable, usable release suitable for the public.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-# Discovering reinforcement learning algprithms
+# Discovering reinforcement learning algorithms
 A jax/stax implementation of the Nature paper: _Discover reinforcement learning algorithms_ [[1]](https://proceedings.neurips.cc/paper/2020/file/0b96d81f0494fde5428c7aea243c9157-Paper.pdf)
 
 The agent at `lpg.agent.py` implements the `bsuite.baseline.base.Agent` interface.
