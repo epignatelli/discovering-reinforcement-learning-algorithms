@@ -5,23 +5,41 @@ import jax.numpy as jnp
 from jax.nn import sigmoid
 from jax.nn.initializers import glorot_normal, normal, zeros
 
-from .base import module
+from .base import Module, module
 
 
 @module
 def Rnn(cell):
+    """Layer construction function for an RNN unroll.
+    Implements truncated backpropagation through time for the backward pass
+    """
+
     def init(rng, input_shape):
         return cell.init(rng, input_shape)
 
-    def apply(params, inputs, prev_state=cell.initial_state()):
+    def apply(params, inputs, **kwargs):
+        prev_state = kwargs.pop("prev_state", cell.initial_state())
         prev_state, outputs = jax.lax.scan(
-            lambda prev_state, inputs: cell.apply(params, inputs, prev_state)[::-1],
+            lambda prev_state, inputs: cell.apply(
+                params, inputs, prev_state=prev_state
+            )[::-1],
             prev_state,
             inputs,
         )
         return outputs, prev_state
 
     return (init, apply)
+
+
+@module
+def DiscardHidden():
+    def init(rng, input_shape):
+        return input_shape, ()
+
+    def apply(params, inputs, **kwargs):
+        return inputs[0]
+
+    return init, apply
 
 
 class LSTMState(NamedTuple):
@@ -48,12 +66,13 @@ def LSTMCell(
 
     def init(rng, input_shape):
         in_dim, out_dim = input_shape[-1] + hidden_size, 4 * hidden_size
+        output_shape = input_shape[:-1] + (hidden_size,)
         k1, k2 = jax.random.split(rng)
         W, b = W_init(k1, (in_dim, out_dim)), b_init(k2, (out_dim,))
-        output_shape = input_shape[:-1] + (hidden_size,)
         return output_shape, (W, b)
 
-    def apply(params, inputs, prev_state=initial_state()):
+    def apply(params, inputs, **kwargs):
+        prev_state = kwargs.pop("prev_state", initial_state())
         W, b = params
         xh = jnp.concatenate([inputs, prev_state.h], axis=-1)
         gated = jnp.matmul(xh, W) + b
@@ -103,14 +122,15 @@ def GRUCell(
 
     def init(rng, input_shape):
         in_dim, out_dim = input_shape[-1] + hidden_size, 3 * hidden_size
+        output_shape = input_shape[:-1] + (hidden_size,)
         k1, k2 = jax.random.split(rng)
         W_i = W_init(k1, (in_dim, out_dim))
         W_h = W_init(k1, (in_dim, out_dim))
         b = b_init(k1, (out_dim,))
-        output_shape = input_shape[:-1] + (hidden_size,)
         return output_shape, (W_i, W_h, b)
 
-    def apply(params, inputs, prev_state=initial_state()):
+    def apply(params, inputs, **kwargs):
+        prev_state = kwargs.pop("prev_state", initial_state())
         W_i, W_h, b = params
         W_hz, W_ha = jnp.split(W_h, indices_or_sections=(2 * hidden_size,), axis=-1)
         b_z, b_a = jnp.split(b, indices_or_sections=(2 * hidden_size,), axis=-1)
