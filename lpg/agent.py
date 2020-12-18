@@ -2,7 +2,15 @@ from typing import NamedTuple
 
 import dm_env
 from bsuite.baselines import base
-from jax.experimental.stax import Dense, serial, parallel, Relu, FanOut
+from jax.experimental.stax import (
+    Dense,
+    FanInConcat,
+    Identity,
+    serial,
+    parallel,
+    Relu,
+    FanOut,
+)
 
 from .modules import DiscardHidden, LSTMCell
 from .base import module
@@ -16,6 +24,8 @@ class HParams(NamedTuple):
 def Lpg(hparams):
     phi = serial(Dense(16), Dense(1))
     return serial(
+        parallel(Identity, Identity, Identity, Identity, phi, phi),
+        FanInConcat(),
         LSTMCell(hparams.hidden_size)[0:2],
         DiscardHidden(),
         Relu,
