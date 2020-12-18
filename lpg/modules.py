@@ -39,7 +39,7 @@ def LSTMCell(
     initial_state_seed=0,
 ):
     """Layer construction function for an LSTM cell.
-    Formulation: Zaremba, W., 2014, https://arxiv.org/pdf/1409.2329.pdf"""
+    Formulation: Zaremba, W., 2015, https://arxiv.org/pdf/1409.2329.pdf"""
 
     def initial_state():
         shape = (hidden_size,)
@@ -74,6 +74,7 @@ def LSTM(
     c_initial_state=zeros,
     initial_state_seed=0,
 ):
+    """"""
     cell = LSTMCell(
         hidden_size,
         W_init,
@@ -83,3 +84,24 @@ def LSTM(
         initial_state_seed,
     )
     return Rnn(cell)
+
+
+def GRUCell(
+    hidden_size,
+    W_init=glorot_normal(),
+    b_init=normal(),
+    h_initial_state=zeros,
+    c_initial_state=zeros,
+    initial_state_seed=0,
+):
+    """Layer construction function for an GRU cell.
+    Formulation: Chun, J., 2014, https://arxiv.org/pdf/1412.3555v1.pdf"""
+
+    def initial_state():
+        pass
+
+    def init(rng, input_shape):
+        pass
+
+    def apply(params, inputs, prev_state=initial_state()):
+        pass
