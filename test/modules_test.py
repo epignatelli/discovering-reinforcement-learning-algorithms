@@ -44,6 +44,8 @@ def test_gru_cell():
     out_shape, params = gru.init(rng, input_shape)
     outputs, state = gru.apply(params, x)
     print(outputs.shape, state.h.shape, state.c.shape)
+    jax.jit(gru.apply)(params, x)
+    jax.grad(lambda l: sum(gru.apply(params, x)[0]))(1.0)
 
 
 test_gru_cell()
@@ -60,6 +62,8 @@ def test_gru():
     out_shape, params = gru.init(rng, input_shape)
     outputs, hidden_state = gru.apply(params, x)
     print(outputs.shape)
+    jax.jit(gru.apply)(params, x)
+    jax.grad(lambda l: sum(sum(gru.apply(params, x)[0])))(1.0)
 
 
 test_gru()
