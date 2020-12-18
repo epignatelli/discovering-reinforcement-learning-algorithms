@@ -2,17 +2,26 @@ from typing import NamedTuple
 
 import dm_env
 from bsuite.baselines import base
+from jax.experimental.stax import Dense, serial, parallel, Relu, FanOut
 
-from .modules import LSTM
-
-
-def HParams(NamedTuple):
-    n_layers: int
-    hidden_size: int
+from .modules import DiscardHidden, LSTMCell
+from .base import module
 
 
+class HParams(NamedTuple):
+    hidden_size: int = 256
+
+
+@module
 def Lpg(hparams):
-    return LSTM(hparams.n_layers, hparams.hidden_size)
+    phi = serial(Dense(16), Dense(1))
+    return serial(
+        LSTMCell(hparams.hidden_size)[0:2],
+        DiscardHidden(),
+        Relu,
+        FanOut(2),
+        parallel(phi, phi),
+    )
 
 
 class ActorCritic(base.Agent):
