@@ -18,13 +18,7 @@ def factory(cls_maker, T):
 class Module(NamedTuple):
     init: Callable[[RNGKey, Shape], Tuple[Shape, Params]]
     apply: Callable[[Params, jnp.ndarray], jnp.ndarray]
-
-
-class RnnCell(NamedTuple):
-    initial_state: Callable[[], jnp.ndarray]
-    init: Callable[[RNGKey, Shape], Tuple[Shape, Params]]
-    apply: Callable[[Params, jnp.ndarray], jnp.ndarray]
+    initial_state: Callable[[], jnp.ndarray] = None
 
 
 module = functools.partial(factory, T=Module)
-rnn_cell = functools.partial(factory, T=RnnCell)

@@ -5,7 +5,7 @@ import jax.numpy as jnp
 from jax.nn import sigmoid
 from jax.nn.initializers import glorot_normal, normal, zeros
 
-from .base import module, rnn_cell
+from .base import module
 
 
 @module
@@ -29,7 +29,7 @@ class LSTMState(NamedTuple):
     c: jnp.ndarray
 
 
-@rnn_cell
+@module
 def LSTMCell(
     hidden_size,
     W_init=glorot_normal(),
@@ -62,7 +62,7 @@ def LSTMCell(
         h = sigmoid(o) * jnp.tanh(c)
         return h, LSTMState(h, c)
 
-    return (initial_state, init, apply)
+    return (init, apply, initial_state)
 
 
 @module
@@ -86,7 +86,7 @@ def LSTM(
     )
 
 
-@rnn_cell
+@module
 def GRUCell(
     hidden_size,
     W_init=glorot_normal(),
@@ -126,7 +126,7 @@ def GRUCell(
         h = (1 - z) * prev_state + z * a
         return h, h
 
-    return (initial_state, init, apply)
+    return (init, apply, initial_state)
 
 
 @module
