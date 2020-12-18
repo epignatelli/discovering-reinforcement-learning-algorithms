@@ -11,6 +11,8 @@ def test_lstm_cell():
     out_shape, params = lstm.init(rng, input_shape)
     outputs, state = lstm.apply(params, x)
     print(outputs.shape, state.h.shape, state.c.shape)
+    jax.jit(lstm.apply)(params, x)
+    jax.grad(lambda l: sum(lstm.apply(params, x)[0]))(1.0)
 
 
 test_lstm_cell()
@@ -27,6 +29,8 @@ def test_lstm():
     out_shape, params = lstm.init(rng, input_shape)
     outputs, hidden_state = lstm.apply(params, x)
     print(outputs.shape)
+    jax.jit(lstm.apply)(params, x)
+    jax.grad(lambda l: sum(sum(lstm.apply(params, x)[0])))(1.0)
 
 
 test_lstm()
