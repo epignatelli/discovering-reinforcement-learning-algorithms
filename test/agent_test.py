@@ -1,11 +1,12 @@
 import jax
 import jax.numpy as jnp
-from lpg.agent import HParams, Lpg
+from lpg.agent import HParams, Lpg, Phi
 
 
 def test_lpg():
     hparams = HParams(hidden_size=32)
-    meta = Lpg(hparams)
+    lpg = Lpg(hparams)
+    phi = Phi()
 
     m = 3
     rng = jax.random.PRNGKey(0)
@@ -19,8 +20,8 @@ def test_lpg():
         jax.random.normal(k2, (m,)),
     )
 
-    output_shape, params = meta.init(rng, ((1,), (1,), (1,), (1,), (m,), (m,)))
-    y_hat, pi = meta.apply(params, x)
+    output_shape, params = lpg.init(rng, ((1,), (1,), (1,), (1,), (m,), (m,)))
+    y_hat, pi = lpg.apply(params, x)
     # check that outputs are scalar
     float(y_hat)
     float(pi)
