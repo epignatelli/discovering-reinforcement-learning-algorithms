@@ -24,6 +24,7 @@ class HParams(NamedTuple):
 def Lpg(hparams):
     phi = serial(Dense(16), Dense(1))
     return serial(
+        # FanOut(6),
         parallel(Identity, Identity, Identity, Identity, phi, phi),
         FanInConcat(),
         LSTMCell(hparams.hidden_size)[0:2],
@@ -34,7 +35,7 @@ def Lpg(hparams):
     )
 
 
-class ActorCritic(base.Agent):
+class A2C(base.Agent):
     def select_action(self, timestep: dm_env.TimeStep) -> base.Action:
         return super().select_action(timestep)
 
