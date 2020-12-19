@@ -67,9 +67,9 @@ class Lpg(base.Agent):
         self.buffer = ReplayBuffer(hparams.replay_memory_size)
 
         # private:
-        self.input_shape = (1, 1 + 1 + 1 + 1 + hparams.prediction_size * 2)
-        self.rng = jax.random.PRNGKey(hparams.seed)
-        self._params = self.model.init(self.rng, self.input_shape)
+        input_shape = (1, 1 + 1 + 1 + 1 + hparams.prediction_size * 2)
+        self._rng = jax.random.PRNGKey(hparams.seed)
+        self._params = self.model.init(self._rng, input_shape)
         self._optimiser_state = self.optimiser.init_fn(self._params)
         self._prev_state = None
 
