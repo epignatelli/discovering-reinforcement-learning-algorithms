@@ -14,18 +14,19 @@ from .modules import LSTMCell, LSTMState, ReplayBuffer
 
 class HParams(NamedTuple):
     hidden_size: int = 256
+    prediction_size: int = 30
     lr: float = 3e-3
     seed: int = 0
     n_actions: int = 9
     replay_memory_size = 32
 
 
-class A2C(base.Agent):
+class Lpg(base.Agent):
     def __init__(self, hparams):
         @module
         def network():
             return serial(
-                Flatten(),
+                Flatten,
                 serial(Dense(hparams.hidden_size), Dense(hparams.hidden_size)),
                 LSTMCell(hparams.hidden_size),
                 parallel(FanOut(2), Identity),
@@ -66,8 +67,9 @@ class A2C(base.Agent):
         self.buffer = ReplayBuffer(hparams.replay_memory_size)
 
         # private:
+        self.input_shape = (1, 1 + 1 + 1 + 1 + hparams.prediction_size * 2)
         self.rng = jax.random.PRNGKey(hparams.seed)
-        self._params = self.model.init()
+        self._params = self.model.init(self.rng, self.input_shape)
         self._optimiser_state = self.optimiser.init_fn(self._params)
         self._prev_state = None
 
