@@ -1,5 +1,6 @@
 import functools
 from typing import Any, Callable, NamedTuple, Tuple
+import jax
 import jax.numpy as jnp
 
 RNGKey = jnp.ndarray
