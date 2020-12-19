@@ -5,7 +5,7 @@ import jax.numpy as jnp
 from jax.nn import sigmoid
 from jax.nn.initializers import glorot_normal, normal, zeros
 
-from .base import Module, module
+from .base import module
 
 
 @module
@@ -114,7 +114,7 @@ def GRUCell(
     initial_state_seed=0,
 ):
     """Layer construction function for an GRU cell.
-    Formulation: Chun, J., 2014, https://arxiv.org/pdf/1412.3555v1.pdf"""
+    Formulation: Chung, J., 2014, https://arxiv.org/pdf/1412.3555v1.pdf"""
 
     def initial_state():
         rng = jax.random.PRNGKey(initial_state_seed)
