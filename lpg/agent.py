@@ -8,7 +8,7 @@ from bsuite.baselines.utils.sequence import Trajectory
 from jax.experimental.optimizers import Optimizer, OptimizerState, adam
 from jax.experimental.stax import Dense, FanOut, Flatten, Identity, parallel, serial
 
-from .base import Module, Params, module
+from .base import Module, Params, inject, module
 from .modules import LSTMCell, LSTMState, ReplayBuffer
 
 
@@ -32,6 +32,7 @@ class A2C(base.Agent):
                 parallel(parallel(Dense(hparams.n_actions), Dense(1)), Identity),
             )
 
+        @inject(self, static_argnums=(0,))
         def forward(
             model: Module,
             params: Params,
@@ -41,6 +42,7 @@ class A2C(base.Agent):
             outputs = self.model.apply(trajectory.observations, prev_state)
             return loss, (outputs)
 
+        @inject(self, static_argnums=(0, 1))
         def sgd_step(
             model: Module,
             optimiser: Optimizer,
@@ -68,10 +70,6 @@ class A2C(base.Agent):
         self._params = self.model.init()
         self._optimiser_state = self.optimiser.init_fn(self._params)
         self._prev_state = None
-        # TODO(epignatelli): use a decorator to automate functions injection
-        self._forward = jax.jit(forward, static_argnums=0)
-        self._network = network
-        self._sgd_step = jax.jit(sgd_step, static_argnums=(0, 1))
 
     def select_action(self, timestep: dm_env.TimeStep) -> base.Action:
         (logits, _), self._prev_state = self._forward(
