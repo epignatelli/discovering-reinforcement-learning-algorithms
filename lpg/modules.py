@@ -1,7 +1,10 @@
+import logging
+from collections import deque
 from typing import NamedTuple
 
 import jax
 import jax.numpy as jnp
+import numpy as onp
 from jax.nn import sigmoid
 from jax.nn.initializers import glorot_normal, normal, zeros
 
@@ -29,17 +32,6 @@ def Rnn(cell):
         return outputs, prev_state
 
     return (init, apply)
-
-
-@module
-def DiscardHidden():
-    def init(rng, input_shape):
-        return input_shape, ()
-
-    def apply(params, inputs, **kwargs):
-        return inputs[0]
-
-    return init, apply
 
 
 class LSTMState(NamedTuple):
@@ -72,7 +64,7 @@ def LSTMCell(
         return output_shape, (W, b)
 
     def apply(params, inputs, **kwargs):
-        prev_state = kwargs.pop("prev_state", initial_state())
+        prev_state = kwargs.pop("prev_state", None) or initial_state()
         W, b = params
         xh = jnp.concatenate([inputs, prev_state.h], axis=-1)
         gated = jnp.matmul(xh, W) + b
@@ -160,3 +152,47 @@ def GRU(
     return Rnn(
         GRUCell(hidden_size, W_init, b_init, initial_state_fn, initial_state_seed)
     )
+
+
+class Transition(NamedTuple):
+    s: onp.ndarray
+    a: onp.ndarray
+    r: onp.ndarray
+    ns: onp.ndarray
+
+
+class ReplayBuffer:
+    def __init__(self, capacity, seed=0):
+        # public:
+        self.capacity = capacity
+
+        # private:
+        self._data = deque(maxlen=capacity)
+        onp.random.seed(seed)
+
+    def __len__(self):
+        return len(self._data)
+
+    def __getitem__(self, idx):
+        return self._data[idx]
+
+    def add(self, timestep, action, new_timestep):
+        self._data.append(
+            Transition(
+                timestep.observation, action, timestep.reward, new_timestep.observation
+            )
+        )
+        return
+
+    def sample(self, n):
+        high = len(self) - n
+        if high <= 0:
+            logging.warning(
+                "The buffer contains less elements than requested: {} <= {}\n"
+                "Returning all the available elements".format(len(self), n)
+            )
+            indices = range(len(self))
+        else:
+            indices = onp.random.randint(0, high, size=n)
+
+        return tuple(zip(*(map(lambda idx: self._data[idx], indices))))
