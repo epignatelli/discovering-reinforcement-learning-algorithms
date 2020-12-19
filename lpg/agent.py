@@ -1,4 +1,4 @@
-from typing import Any, NamedTuple, Tuple
+from typing import NamedTuple, Tuple
 
 import dm_env
 import jax
@@ -13,18 +13,18 @@ from .modules import LSTMCell, LSTMState, ReplayBuffer
 
 
 class HParams(NamedTuple):
+    n_actions: int = 9
     hidden_size: int = 256
     prediction_size: int = 30
+    replay_memory_size = 32
     lr: float = 3e-3
     seed: int = 0
-    n_actions: int = 9
-    replay_memory_size = 32
 
 
 class Lpg(base.Agent):
     def __init__(self, hparams):
         @module
-        def network():
+        def network() -> Module:
             return serial(
                 Flatten,
                 serial(Dense(hparams.hidden_size), Dense(hparams.hidden_size)),
@@ -74,7 +74,7 @@ class Lpg(base.Agent):
         self._prev_state = None
 
     def select_action(self, timestep: dm_env.TimeStep) -> base.Action:
-        (logits, _), self._prev_state = self._forward(
+        (logits, _), self._prev_state = self.forward(
             self.params, timestep.observation, self._prev_state
         )
         action = jax.random.categorical(self._rng, logits).squeeze()
@@ -88,11 +88,13 @@ class Lpg(base.Agent):
     ) -> None:
         self.iteration += 1
 
+        #  add transtition to memory
         self.buffer.add(timestep, action, new_timestep)
 
+        #  learn only if full
         if self.buffer.full() or new_timestep.last():
             trajectory = self.buffer.sample()
-            loss, self._optimiser_state = self._sgd_step(
+            loss, self._optimiser_state = self.sgd_step(
                 self.model,
                 self.optimiser,
                 self.iteration,

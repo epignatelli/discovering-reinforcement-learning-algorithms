@@ -61,7 +61,7 @@ def LSTMCell(
         output_shape = input_shape[:-1] + (hidden_size,)
         k1, k2 = jax.random.split(rng)
         W, b = W_init(k1, (in_dim, out_dim)), b_init(k2, (out_dim,))
-        return output_shape, (W, b)
+        return (output_shape, (output_shape, output_shape)), (W, b)
 
     def apply(params, inputs, **kwargs):
         prev_state = kwargs.pop("prev_state", None) or initial_state()
