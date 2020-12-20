@@ -8,19 +8,17 @@ Shape = Tuple[int, ...]
 Params = Any
 
 
-def inject(cls, static_argnums=None):
-    def decorate(function):
+def inject(cls, *args, **kwargs):
+    def decorate(fun):
         # TODO(epignatelli): remove cls argument, infer it, instead
         setattr(
             cls,
-            function.__name__,
-            function
-            if not static_argnums
-            else jax.jit(function, static_argnums=static_argnums),
+            fun.__name__,
+            jax.jit(fun, *args, **kwargs),
         )
 
-        def wrapper(*args, **kwargs):
-            return function(*args, **kwargs)
+        def wrapper(*a, **k):
+            return fun(*a, **k)
 
         return wrapper
 
