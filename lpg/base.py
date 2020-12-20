@@ -8,21 +8,11 @@ Shape = Tuple[int, ...]
 Params = Any
 
 
-def inject(cls, *args, **kwargs):
-    def decorate(fun):
-        # TODO(epignatelli): remove cls argument, infer it, instead
-        setattr(
-            cls,
-            fun.__name__,
-            jax.jit(fun, *args, **kwargs),
-        )
-
-        def wrapper(*a, **k):
-            return fun(*a, **k)
-
-        return wrapper
-
-    return decorate
+def inject(fun, **kwargs):
+    cls = fun.__globals__[fun.__qualname__.split(".")[0]]
+    f_jit = jax.jit(fun, **kwargs)
+    setattr(cls, fun.__name__, staticmethod(f_jit))
+    return inject
 
 
 def factory(cls_maker, T):
