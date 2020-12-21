@@ -8,7 +8,7 @@ import numpy as onp
 from jax.nn import sigmoid
 from jax.nn.initializers import glorot_normal, normal, zeros
 
-from .base import module
+from helx.base import module
 
 
 @module

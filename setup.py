@@ -10,5 +10,5 @@ setup(
     author_email="edu.pignatelli@gmail.com",
     url="https://github.com/epignateli/lpg",
     packages=["lpg", "lpg.environments"],
-    install_requires=open("requirements.txt", "r").readlines(),
+    install_requires=open("requirements.txt", "r").read().splitlines(),
 )
