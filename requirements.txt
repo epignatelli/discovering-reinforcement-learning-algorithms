@@ -6,3 +6,4 @@ bsuite
 black
 pylint
 pytest
+git+https://github.com/epignatelli/helx

@@ -1,3 +1,4 @@
+from functools import partial
 from typing import NamedTuple, Tuple
 
 import dm_env
@@ -12,12 +13,29 @@ from .base import Module, Params, inject, module
 from .modules import LSTMCell, LSTMState, ReplayBuffer
 
 
-class HParams(NamedTuple):
+class MetaHParams(NamedTuple):
+    oprimiser: Optimizer = adam
+    learning_rate: float = jax.random.uniform([5e-4, 1e-4, 3e-5])
+    discount_factor: float = jax.random.uniform([0.995, 0.99])
+    policy_entropy_cost: float = jax.random.uniform([0.01, 0.01])
+    prediction_entropy_cost: float = 0.001
+    policy_regularisation_weight: float = 0.001
+    policy_regularisation_weight: float = 0.001
+    bandit_temperature: float = 0.1
+    bandit_exploration_bonus: float = 0.2
+    trajectory_steps: int = 20
+    parameters_update: int = 5
+    parallel_lifetimes: int = 960
+    parallel_environments: int = 64
+
+
+class AgentHParams(NamedTuple):
     n_actions: int = 9
     hidden_size: int = 256
     prediction_size: int = 30
     replay_memory_size = 32
     lr: float = 3e-3
+    kl_cost: float = 0.5
     seed: int = 0
 
 
@@ -33,17 +51,18 @@ class Lpg(base.Agent):
                 parallel(parallel(Dense(hparams.n_actions), Dense(1)), Identity),
             )
 
-        @inject(self, static_argnums=(0,))
+        @partial(inject, static_argnums=(0,))
         def forward(
             model: Module,
             params: Params,
             trajectory: Trajectory,
             prev_state: LSTMState,
         ) -> jnp.ndarray:
-            outputs = self.model.apply(trajectory.observations, prev_state)
+            outputs, prev_state = self.model.apply(trajectory.observations, prev_state)
+
             return loss, (outputs)
 
-        @inject(self, static_argnums=(0, 1))
+        @partial(inject, static_argnums=(0, 1))
         def sgd_step(
             model: Module,
             optimiser: Optimizer,
@@ -67,16 +86,17 @@ class Lpg(base.Agent):
         self.buffer = ReplayBuffer(hparams.replay_memory_size)
 
         # private:
-        input_shape = (1, 1 + 1 + 1 + 1 + hparams.prediction_size * 2)
         self._rng = jax.random.PRNGKey(hparams.seed)
-        self._params = self.model.init(self._rng, input_shape)
-        self._optimiser_state = self.optimiser.init_fn(self._params)
+        input_shape = (1, 1 + 1 + 1 + 1 + hparams.prediction_size * 2)
+        params = self.model.init(self._rng, input_shape)
+        self._optimiser_state = self.optimiser.init_fn(params)
         self._prev_state = None
 
     def select_action(self, timestep: dm_env.TimeStep) -> base.Action:
-        (logits, _), self._prev_state = self.forward(
+        (logits, _), prev_state = self.forward(
             self.params, timestep.observation, self._prev_state
         )
+        self._prev_state = prev_state
         action = jax.random.categorical(self._rng, logits).squeeze()
         return int(action)
 
@@ -94,7 +114,7 @@ class Lpg(base.Agent):
         #  learn only if full
         if self.buffer.full() or new_timestep.last():
             trajectory = self.buffer.sample()
-            loss, self._optimiser_state = self.sgd_step(
+            loss, optimiser_state = self.sgd_step(
                 self.model,
                 self.optimiser,
                 self.iteration,
@@ -102,7 +122,9 @@ class Lpg(base.Agent):
                 trajectory,
                 self._prev_state,
             )
+            self._optimiser_state = optimiser_state
 
+        # reset hidden state to avoid information flowing across episodes
         if new_timestep.last():
             self._prev_state = None
 
