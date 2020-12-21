@@ -16,6 +16,7 @@ To run the algorithm on a GPU, I suggest to [install](https://github.com/google/
 conda env create -n lpg
 conda activate lpg
 pip install git+https://github.com/epignatelli/discovering-reinforcement-learning-algorithms
+pip install git+https://github.com/epignatelli/helx
 ```
 
 
