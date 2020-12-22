@@ -3,7 +3,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 # Discovering reinforcement learning algorithms
-A jax/stax implementation of the NeurIPS 2020 paper: _Discover reinforcement learning algorithms_ [[1]](https://proceedings.neurips.cc/paper/2020/file/0b96d81f0494fde5428c7aea243c9157-Paper.pdf)
+A jax/stax implementation of the NeurIPS 2020 paper: _Discovering reinforcement learning algorithms_ [[1]](https://proceedings.neurips.cc/paper/2020/file/0b96d81f0494fde5428c7aea243c9157-Paper.pdf)
 
 The agent at `lpg.agent.py` implements the `bsuite.baseline.base.Agent` interface.
 The `lpg/environments/*.py` interfaces with a `dm_env.Environment`.
