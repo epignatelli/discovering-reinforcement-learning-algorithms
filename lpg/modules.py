@@ -5,10 +5,9 @@ from typing import NamedTuple
 import jax
 import jax.numpy as jnp
 import numpy as onp
+from helx.modules import module
 from jax.nn import sigmoid
 from jax.nn.initializers import glorot_normal, normal, zeros
-
-from helx.base import module
 
 
 @module

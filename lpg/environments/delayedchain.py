@@ -76,3 +76,4 @@ class DelayedchainMaps(NamedTuple):
     SHORT_AND_NOISY = DelayedchainConfig((5, 30), True)
     LONG = DelayedchainConfig((5, 50), False)
     LONG_AND_NOISY = DelayedchainConfig((5, 50), True)
+    STATE_DISTRACTION = None

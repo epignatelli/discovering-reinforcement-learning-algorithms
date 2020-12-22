@@ -3,12 +3,13 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 # Discovering reinforcement learning algorithms
-A jax/stax implementation of the Nature paper: _Discover reinforcement learning algorithms_ [[1]](https://proceedings.neurips.cc/paper/2020/file/0b96d81f0494fde5428c7aea243c9157-Paper.pdf)
+A jax/stax implementation of the Nature paper: _Discover reinforcement learning algorithms_ [[1]](https://proceedings.neurips.cc/paper/2020/file/0b96d81f0494fde5428c7aea243c9157-Paper.pdf).
 
 The agent at `lpg.agent.py` implements the `bsuite.baseline.base.Agent` interface.
 The `lpg/environments/*.py` interfaces with a `dm_env.Environment`.
 We wrap the [gym-atari](https://github.com/openai/gym) suite using the `bsuite.utils.gym_wrapper.DMEnvFromGym` adapter into a `dqn.AtariEnv` to implement historical observations and actions repeat.
 
+You can find the A2C, LPG-V, and BootDQN baselines in the bsuite library: https://github.com/deepmind/bsuite/tree/master/bsuite/baselines/jax
 
 ## Installation
 To run the algorithm on a GPU, I suggest to [install](https://github.com/google/jax#pip-installation) the gpu version of `jax` [[4]](https://github.com/google/jax). You can then install this repo using [Anaconda python](https://www.anaconda.com/products/individual) and [pip](https://pip.pypa.io/en/stable/installing/).
